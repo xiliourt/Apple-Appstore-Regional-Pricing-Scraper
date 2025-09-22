@@ -1,3 +1,4 @@
+
 'use client';
 
 /**
@@ -6,15 +7,19 @@
  */
 import { useState, useTransition, useEffect, useMemo } from 'react';
 import { getProducts } from '../lib/scraper';
-import { countryData, apple_store_currency_map } from '../lib/constants';
+import {
+  countryData,
+  apple_store_currency_map,
+} from '../lib/constants';
 import axios from 'axios';
 import {
   ScrapedProduct,
   GroupedProduct,
   SortConfig,
   ExchangeRates,
+  filterHighestPriceProducts,
   groupProducts,
-  sortGroupedProducts
+  sortGroupedProducts,
 } from '../lib/utils';
 
 export default function Home(): JSX.Element {
@@ -25,7 +30,9 @@ export default function Home(): JSX.Element {
   const [isPending, startTransition] = useTransition();
 
   // State for grouped data, selected product, and sorting
-  const [groupedData, setGroupedData] = useState<Record<string, GroupedProduct[]>>({});
+  const [groupedData, setGroupedData] = useState<
+    Record<string, GroupedProduct[]>
+  >({});
   const [selectedProduct, setSelectedProduct] = useState<string>('');
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: 'convertedCost',
@@ -33,56 +40,56 @@ export default function Home(): JSX.Element {
   });
 
   // State for currency conversion
-  const [conversionCurrency, setConversionCurrency] = useState<string | null>(null);
+  const [conversionCurrency, setConversionCurrency] = useState<string | null>(
+    'AUD'
+  );
   const [exchangeRates, setExchangeRates] = useState<ExchangeRates>({});
   const [ratesError, setRatesError] = useState<string | null>(null);
   const [loadingRates, setLoadingRates] = useState(false);
 
-  const availableCurrencies = []
-  availableCurrencies.push('AUD')
-
-  // Derive available currencies for the dropdown from countryData
+  // Hard-set available currency to AUD as requested.
+  const availableCurrencies = ['AUD'];
 
   // Effect to fetch exchange rates when data or selected currency changes
   useEffect(() => {
     const fetchRates = async () => {
-        if (!conversionCurrency || Object.keys(groupedData).length === 0) {
-            return;
-        }
+      if (!conversionCurrency || Object.keys(groupedData).length === 0) {
+        return;
+      }
 
-        setLoadingRates(true);
-        setRatesError(null);
+      setLoadingRates(true);
+      setRatesError(null);
 
-        const allProducts = Object.values(groupedData).flat();
-        const sourceCurrencies = [...new Set(allProducts.map(p => p.currency))];
-        const currenciesToFetch = sourceCurrencies.filter(
-          c => !exchangeRates[c] && c !== conversionCurrency
+      const allProducts = Object.values(groupedData).flat();
+      const sourceCurrencies = [...new Set(allProducts.map(p => p.currency))];
+      const currenciesToFetch = sourceCurrencies.filter(
+        c => !exchangeRates[c] && c !== conversionCurrency
+      );
+
+      if (currenciesToFetch.length === 0) {
+        setLoadingRates(false);
+        return;
+      }
+
+      try {
+        const ratePromises = currenciesToFetch.map(baseCurrency =>
+          axios.get(`https://open.er-api.com/v6/latest/${baseCurrency}`)
         );
-
-        if (currenciesToFetch.length === 0) {
-            setLoadingRates(false);
-            return;
-        }
-
-        try {
-            const ratePromises = currenciesToFetch.map(baseCurrency =>
-                axios.get(`https://open.er-api.com/v6/latest/${baseCurrency}`)
-            );
-            const responses = await Promise.all(ratePromises);
-            const newRates: Record<string, Record<string, number>> = {};
-            responses.forEach((response, index) => {
-                const baseCurrency = currenciesToFetch[index];
-                if (response.data && response.data.rates) {
-                    newRates[baseCurrency] = response.data.rates;
-                }
-            });
-            setExchangeRates(prevRates => ({ ...prevRates, ...newRates }));
-        } catch (err) {
-            console.error('Failed to fetch exchange rates:', err);
-            setRatesError('Could not fetch exchange rates.');
-        } finally {
-            setLoadingRates(false);
-        }
+        const responses = await Promise.all(ratePromises);
+        const newRates: Record<string, Record<string, number>> = {};
+        responses.forEach((response, index) => {
+          const baseCurrency = currenciesToFetch[index];
+          if (response.data && response.data.rates) {
+            newRates[baseCurrency] = response.data.rates;
+          }
+        });
+        setExchangeRates(prevRates => ({ ...prevRates, ...newRates }));
+      } catch (err) {
+        console.error('Failed to fetch exchange rates:', err);
+        setRatesError('Could not fetch exchange rates.');
+      } finally {
+        setLoadingRates(false);
+      }
     };
 
     fetchRates();
@@ -99,39 +106,58 @@ export default function Home(): JSX.Element {
     }
 
     startTransition(() => {
-        setLoading(true);
-        setError(null);
-        setProgress(0);
-        setGroupedData({});
-        setSelectedProduct('');
-        setSortConfig({ key: 'convertedCost', direction: 'ascending' });
-        setExchangeRates({});
-        setRatesError(null);
+      setLoading(true);
+      setError(null);
+      setProgress(0);
+      setGroupedData({});
+      setSelectedProduct('');
+      setSortConfig({ key: 'convertedCost', direction: 'ascending' });
+      setExchangeRates({});
+      setRatesError(null);
     });
 
     const allProducts: ScrapedProduct[] = [];
-    const promises = Object.entries(countryData).map(async ([countryCode, countryName]) => {
-      try {
-        const products = await getProducts(countryCode, searchAppId);
-        products.forEach(p => {
-          allProducts.push({
-            ...p,
-            countryCode: countryCode, 
-            countryName: countryName, 
-            currency: apple_store_currency_map[countryCode],
+    const countryCodes = Object.keys(countryData);
+    const totalCountries = countryCodes.length;
+    const BATCH_SIZE = 10;
+
+    for (let i = 0; i < totalCountries; i += BATCH_SIZE) {
+      const batchCodes = countryCodes.slice(i, i + BATCH_SIZE);
+      const batch = batchCodes.map(code => ({
+        countryCode: code,
+        countryName: countryData[code],
+        currency:
+          apple_store_currency_map[
+            code.toUpperCase() as keyof typeof apple_store_currency_map
+          ],
+      }));
+
+      const promises = batch.map(async country => {
+        try {
+          const products = await getProducts(country.countryCode, searchAppId);
+          products.forEach(p => {
+            allProducts.push({
+              ...p,
+              countryCode: country.countryCode,
+              countryName: country.countryName,
+              currency: country.currency,
+            });
           });
-        });
-      } catch (err) {
-        console.error(`Failed to fetch for ${countryName}`, err);
-      } finally {
-        startTransition(() => {
-          setProgress(prev => prev + 1);
-        });
-      }
-    });
+        } catch (err) {
+          console.error(`Failed to fetch for ${country.countryName}`, err);
+        } finally {
+          startTransition(() => {
+            setProgress(prev => prev + 1);
+          });
+        }
+      });
+      await Promise.all(promises);
+    }
+
+    const filteredProducts = filterHighestPriceProducts(allProducts);
 
     startTransition(() => {
-      const finalGroupedData = groupProducts(allProducts);
+      const finalGroupedData = groupProducts(filteredProducts);
       const productNames = Object.keys(finalGroupedData).sort();
 
       setGroupedData(finalGroupedData);
@@ -159,16 +185,23 @@ export default function Home(): JSX.Element {
 
   const sortedTableData = useMemo(() => {
     if (!selectedProduct || !groupedData[selectedProduct]) {
-        return [];
+      return [];
     }
     return sortGroupedProducts(
-        groupedData[selectedProduct],
-        sortConfig,
-        conversionCurrency,
-        exchangeRates
+      groupedData[selectedProduct],
+      sortConfig,
+      conversionCurrency,
+      exchangeRates
     );
-  }, [selectedProduct, groupedData, sortConfig, conversionCurrency, exchangeRates]);
+  }, [
+    selectedProduct,
+    groupedData,
+    sortConfig,
+    conversionCurrency,
+    exchangeRates,
+  ]);
 
+  const totalCountriesToScrape = Object.keys(countryData).length;
 
   return (
     <main>
@@ -192,13 +225,14 @@ export default function Home(): JSX.Element {
           <select
             id="conversion-currency"
             value={conversionCurrency || ''}
-            onChange={(e) => setConversionCurrency(e.target.value || null)}
+            onChange={e => setConversionCurrency(e.target.value || null)}
             disabled={loading || isPending}
             aria-label="Select conversion currency"
           >
-            <option value="">-- Select Currency --</option>
             {availableCurrencies.map(currency => (
-              <option key={currency} value={currency}>{currency}</option>
+              <option key={currency} value={currency}>
+                {currency}
+              </option>
             ))}
           </select>
         </div>
@@ -208,18 +242,22 @@ export default function Home(): JSX.Element {
 
       {loading && (
         <div className="loading-container" role="status" aria-live="polite">
-          <p>Scraping data for {countryData.length} countries...</p>
+          <p>Scraping data for {totalCountriesToScrape} countries...</p>
           <div className="progress-bar-container">
             <div
               className="progress-bar"
-              style={{ width: `${(progress / +countryData.length) * 100}%` }}
+              style={{
+                width: `${(progress / totalCountriesToScrape) * 100}%`,
+              }}
               role="progressbar"
               aria-valuenow={progress}
               aria-valuemin={0}
-              aria-valuemax={+countryData.length}
+              aria-valuemax={totalCountriesToScrape}
             ></div>
           </div>
-          <p>{progress} / {+countryData.length} countries processed.</p>
+          <p>
+            {progress} / {totalCountriesToScrape} countries processed.
+          </p>
         </div>
       )}
 
@@ -233,18 +271,42 @@ export default function Home(): JSX.Element {
               onChange={e => setSelectedProduct(e.target.value)}
               aria-label="Select a product to view its prices"
             >
-              {Object.keys(groupedData).sort().map(productName => (
-                <option key={productName} value={productName}>{productName}</option>
-              ))}
+              {Object.keys(groupedData)
+                .sort()
+                .map(productName => (
+                  <option key={productName} value={productName}>
+                    {productName}
+                  </option>
+                ))}
             </select>
           </div>
           <table>
             <thead>
               <tr>
-                <th className={getSortClass('currency')} onClick={() => requestSort('currency')}>Currency</th>
-                <th className={getSortClass('cost')} onClick={() => requestSort('cost')}>Original Cost</th>
-                <th className={getSortClass('convertedCost')} onClick={() => requestSort('convertedCost')}>Converted Cost</th>
-                <th className={getSortClass('countries')} onClick={() => requestSort('countries')}>Countries</th>
+                <th
+                  className={getSortClass('currency')}
+                  onClick={() => requestSort('currency')}
+                >
+                  Currency
+                </th>
+                <th
+                  className={getSortClass('cost')}
+                  onClick={() => requestSort('cost')}
+                >
+                  Original Cost
+                </th>
+                <th
+                  className={getSortClass('convertedCost')}
+                  onClick={() => requestSort('convertedCost')}
+                >
+                  Converted Cost
+                </th>
+                <th
+                  className={getSortClass('countries')}
+                  onClick={() => requestSort('countries')}
+                >
+                  Countries
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -254,22 +316,27 @@ export default function Home(): JSX.Element {
                   <td>{item.cost.toFixed(2)}</td>
                   <td>
                     {(() => {
-                        if (!conversionCurrency) return <span className="subtle-text">--</span>;
+                      if (!conversionCurrency)
+                        return <span className="subtle-text">--</span>;
 
-                        if (item.currency === conversionCurrency) {
-                            return `${item.cost.toFixed(2)} ${conversionCurrency}`;
-                        }
-                        
-                        const rate = exchangeRates[item.currency]?.[conversionCurrency];
+                      if (item.currency === conversionCurrency) {
+                        return `${item.cost.toFixed(2)} ${conversionCurrency}`;
+                      }
 
-                        if (loadingRates && !rate) return '...';
-                        if (ratesError && !rate) return <span className="error-text">Error</span>;
+                      const rate =
+                        exchangeRates[item.currency]?.[conversionCurrency];
 
-                        if (rate) {
-                            const convertedCost = item.cost * rate;
-                            return `${convertedCost.toFixed(2)} ${conversionCurrency}`;
-                        }
-                        return '...';
+                      if (loadingRates && !rate) return '...';
+                      if (ratesError && !rate)
+                        return <span className="error-text">Error</span>;
+
+                      if (rate) {
+                        const convertedCost = item.cost * rate;
+                        return `${convertedCost.toFixed(
+                          2
+                        )} ${conversionCurrency}`;
+                      }
+                      return '...';
                     })()}
                   </td>
                   <td>{[...item.countries].sort().join(', ')}</td>
