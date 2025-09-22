@@ -35,9 +35,9 @@ export type GetProductsFn = (
 const PROXY_URLS = [
   'https://corsproxy.io/?',
   'https://api.allorigins.win/raw?url=',
-  'https://crossorigin.me/'
-  'https://api.allorigins.win/raw?url='
-  'https://api.codetabs.com/v1/proxy/?quest='
+  'https://crossorigin.me/',
+  'https://api.allorigins.win/raw?url=',
+  'https://api.codetabs.com/v1/proxy/?quest=',
   'http://www.whateverorigin.org/get?url='
 ];
 
