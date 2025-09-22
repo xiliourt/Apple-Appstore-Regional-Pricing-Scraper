@@ -66,36 +66,38 @@ export const getProducts: GetProductsFn = async (countryCode, appId) => {
 
       const products: Products = [];
 
-      // Find all <dt> elements.
-      const termElements = doc.querySelectorAll('dt.information-list__item__term');
-      
       // Find the <dt> for "In-App Purchases".
-      let inAppPurchasesDt: Element | null = null;
-      termElements.forEach(dt => {
-        if (dt.textContent?.trim() === 'In-App Purchases') {
-          inAppPurchasesDt = dt;
-        }
-      });
+      const inAppPurchasesDt = Array.from(
+        doc.querySelectorAll('dt.information-list__item__term')
+      ).find(dt => dt.textContent?.trim() === 'In-App Purchases');
 
       if (inAppPurchasesDt) {
         // The parent element should be a div that also contains the <dd>.
         const parentElement = inAppPurchasesDt.parentElement;
         if (parentElement) {
           // Find the corresponding <dd> element.
-          const definitionElement = parentElement.querySelector('dd.information-list__item__definition');
-          
+          const definitionElement = parentElement.querySelector(
+            'dd.information-list__item__definition'
+          );
+
           if (definitionElement) {
             // Find all list items representing in-app purchases.
-            const productItems = definitionElement.querySelectorAll('li.list-with-numbers__item');
-            
+            const productItems = definitionElement.querySelectorAll(
+              'li.list-with-numbers__item'
+            );
+
             productItems.forEach(item => {
-              const productElement = item.querySelector('.list-with-numbers__item__title span');
-              const costElement = item.querySelector('.list-with-numbers__item__price');
+              const productElement = item.querySelector(
+                '.list-with-numbers__item__title span'
+              );
+              const costElement = item.querySelector(
+                '.list-with-numbers__item__price'
+              );
 
               if (productElement && costElement) {
                 const product = productElement.textContent?.trim() || '';
                 const cost = costElement.textContent?.trim() || '';
-                
+
                 if (product && cost) {
                   products.push({ product, cost });
                 }
@@ -104,12 +106,15 @@ export const getProducts: GetProductsFn = async (countryCode, appId) => {
           }
         }
       }
-      
+
       // If we are here, the request was successful. Return the products found (or an empty array).
       return products;
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        console.warn(`Proxy ${proxy} failed for ${targetUrl}:`, error.message);
+        console.warn(
+          `Proxy ${proxy} failed for ${targetUrl}:`,
+          error.message
+        );
       } else {
         console.warn(`Proxy ${proxy} failed for ${targetUrl}:`, error);
       }
