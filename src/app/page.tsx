@@ -212,14 +212,14 @@ export default function Home(): JSX.Element {
           <div className="progress-bar-container">
             <div
               className="progress-bar"
-              style={{ width: `${(progress / countryData.length) * 100}%` }}
+              style={{ width: `${(progress / +countryData.length) * 100}%` }}
               role="progressbar"
               aria-valuenow={progress}
               aria-valuemin={0}
               aria-valuemax={+countryData.length}
             ></div>
           </div>
-          <p>{progress} / {countryData.length} countries processed.</p>
+          <p>{progress} / {+countryData.length} countries processed.</p>
         </div>
       )}
 
