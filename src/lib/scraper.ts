@@ -100,15 +100,13 @@ export const getProducts: GetProductsFn = async (countryCode, appId) => {
 
                 if (product && cost) {
                   products.push({ product, cost });
+                  return products;
                 }
               }
             });
           }
         }
       }
-
-      // If we are here, the request was successful. Return the products found (or an empty array).
-      return products;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         console.warn(
@@ -118,7 +116,6 @@ export const getProducts: GetProductsFn = async (countryCode, appId) => {
       } else {
         console.warn(`Proxy ${proxy} failed for ${targetUrl}:`, error);
       }
-      // If a proxy fails (e.g., 429, timeout, CORS error), the loop will continue to the next one.
     }
   }
 
