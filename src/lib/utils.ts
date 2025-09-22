@@ -1,10 +1,10 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { normalizePrice } from './util';
-import { apple_store_currency_map } from './constants'
 
 // Type for a single scraped product, enriched with country info.
 export type ScrapedProduct = {
@@ -13,7 +13,6 @@ export type ScrapedProduct = {
   countryCode: string;
   countryName: string;
   currency: string;
-  pricingCurrency?: string;
 };
 
 // Type for the final data structure displayed in the table.
@@ -34,6 +33,33 @@ export type SortConfig = {
 // Type for the exchange rates data structure.
 export type ExchangeRates = Record<string, Record<string, number>>;
 
+/**
+ * Filters a list of scraped products to keep only the highest-priced entry
+ * for each unique combination of country and product name.
+ */
+export function filterHighestPriceProducts(allProducts: ScrapedProduct[]): ScrapedProduct[] {
+  const highestPriceProducts = new Map<string, ScrapedProduct>();
+  for (const product of allProducts) {
+    const key = `${product.countryCode}-${product.product}`;
+    const existing = highestPriceProducts.get(key);
+    const currentCost = normalizePrice(product.cost);
+
+    if (isNaN(currentCost)) {
+      continue; // Skip products with unparseable costs
+    }
+
+    if (!existing) {
+      highestPriceProducts.set(key, product);
+      continue;
+    }
+
+    const existingCost = normalizePrice(existing.cost);
+    if (isNaN(existingCost) || currentCost > existingCost) {
+      highestPriceProducts.set(key, product);
+    }
+  }
+  return Array.from(highestPriceProducts.values());
+}
 
 /**
  * Groups scraped products by product name. Each product name will have a list
@@ -47,7 +73,9 @@ export function groupProducts(allProducts: ScrapedProduct[]): Record<string, Gro
       return acc;
     }
     
-    const effectiveCurrency = apple_store_currency_map[item.countryCode]
+    // The currency is now directly taken from the scraped item, which is determined
+    // by the country's app store.
+    const effectiveCurrency = item.currency;
 
     const key = `${item.product}-${effectiveCurrency}-${normalizedCost}`;
     if (!acc[key]) {
