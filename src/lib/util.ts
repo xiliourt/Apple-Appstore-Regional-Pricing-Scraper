@@ -2,24 +2,6 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-import { currencySymbolMap } from './constants';
-
-// Sort symbols by length descending to match more specific symbols first (e.g., "HK$" before any potential "$").
-const sortedCurrencySymbols = Object.keys(currencySymbolMap).sort((a, b) => b.length - a.length);
-
-/**
- * Attempts to determine a currency code from a price string based on known symbols.
- * @param price The raw price string (e.g., "₪88.00", "€12.99").
- * @returns A currency code (e.g., "ILS", "EUR") or null if no match is found.
- */
-export const getCurrencyFromSymbol = (price: string): string | null => {
-  for (const symbol of sortedCurrencySymbols) {
-    if (price.includes(symbol)) {
-      return currencySymbolMap[symbol];
-    }
-  }
-  return null;
-}
 
 /**
  * Helper function to parse a string containing a number with various international separators.
@@ -74,7 +56,6 @@ function parseNumberWithSeparators(price: string): number {
   }
 }
 
-
 /**
  * Normalizes a price string into a number, handling various international formats.
  * e.g., "R5,399.99" -> 5399.99, "€5.399,99" -> 5399.99, "45.000đ" -> 45000, "Rp 75ribu" -> 75000
@@ -83,7 +64,7 @@ export const normalizePrice = (price: string): number => {
     const priceLower = price.toLowerCase();
 
     // Custom parser for Indonesian 'juta' and 'ribu' which use comma as decimal
-    const handleIndonesian = (keyword: string): number | null => {
+    const sanatize = (keyword: string): number | null => {
         if (priceLower.includes(keyword)) {
             const numericPart = priceLower.split(keyword)[0];
             // In this context, comma is always a decimal. Remove thousands separators (dots) and replace comma.
@@ -97,10 +78,10 @@ export const normalizePrice = (price: string): number => {
         return null;
     };
 
-    const jutaResult = handleIndonesian('juta');
+    const jutaResult = sanatize('juta');
     if (jutaResult !== null) return jutaResult;
 
-    const ribuResult = handleIndonesian('ribu');
+    const ribuResult = sanatize('ribu');
     if (ribuResult !== null) return ribuResult;
 
     return parseNumberWithSeparators(price);
