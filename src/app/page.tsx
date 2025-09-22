@@ -38,6 +38,9 @@ export default function Home(): JSX.Element {
   const [ratesError, setRatesError] = useState<string | null>(null);
   const [loadingRates, setLoadingRates] = useState(false);
 
+  const availableCurrencies = []
+  availableCurrencies.push('AUD')
+
   // Derive available currencies for the dropdown from countryData
 
   // Effect to fetch exchange rates when data or selected currency changes
