@@ -6,7 +6,7 @@
  */
 import { useState, useTransition, useEffect, useMemo } from 'react';
 import { getProducts } from '../lib/scraper';
-import { countryData } from '../lib/constants';
+import { countryData, apple_store_currency_map } from '../lib/constants';
 import axios from 'axios';
 import {
   ScrapedProduct,
@@ -40,9 +40,6 @@ export default function Home(): JSX.Element {
   const [loadingRates, setLoadingRates] = useState(false);
 
   // Derive available currencies for the dropdown from countryData
-  const availableCurrencies = [
-    ...new Set(countryData.map(c => c.currency))
-  ].sort();
 
   // Effect to fetch exchange rates when data or selected currency changes
   useEffect(() => {
@@ -111,38 +108,28 @@ export default function Home(): JSX.Element {
     });
 
     const allProducts: ScrapedProduct[] = [];
-    const totalCountries = countryData.length;
-    const BATCH_SIZE = 10;
-
-    for (let i = 0; i < totalCountries; i += BATCH_SIZE) {
-      const batch = countryData.slice(i, i + BATCH_SIZE);
-      const promises = batch.map(async (country) => {
-        try {
-          const products = await getProducts(country.countryCode, searchAppId);
-          products.forEach(p => {
-            allProducts.push({
-              ...p,
-              countryCode: country.countryCode,
-              countryName: country.countryName,
-              currency: country.currency,
-              pricingCurrency: country.pricingCurrency,
-            });
+    const promises = Object.entries(countryData).map(async ([countryCode, countryName]) => {
+      try {
+        const products = await getProducts(countryCode, searchAppId);
+        products.forEach(p => {
+          allProducts.push({
+            ...p,
+            countryCode: countryCode, 
+            countryName: countryName, 
+            currency: apple_store_currency_map[countryCode],
           });
-        } catch (err) {
-          console.error(`Failed to fetch for ${country.countryName}`, err);
-        } finally {
-          startTransition(() => {
-              setProgress(prev => prev + 1);
-          });
-        }
-      });
-      await Promise.all(promises);
-    }
-
-    const filteredProducts = filterHighestPriceProducts(allProducts);
+        });
+      } catch (err) {
+        console.error(`Failed to fetch for ${countryName}`, err);
+      } finally {
+        startTransition(() => {
+          setProgress(prev => prev + 1);
+        });
+      }
+    });
 
     startTransition(() => {
-      const finalGroupedData = groupProducts(filteredProducts);
+      const finalGroupedData = groupProducts(allProducts);
       const productNames = Object.keys(finalGroupedData).sort();
 
       setGroupedData(finalGroupedData);
