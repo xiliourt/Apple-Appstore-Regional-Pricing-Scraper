@@ -1,3 +1,4 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -56,6 +57,7 @@ function parseNumberWithSeparators(price: string): number {
   }
 }
 
+
 /**
  * Normalizes a price string into a number, handling various international formats.
  * e.g., "R5,399.99" -> 5399.99, "€5.399,99" -> 5399.99, "45.000đ" -> 45000, "Rp 75ribu" -> 75000
@@ -64,7 +66,7 @@ export const normalizePrice = (price: string): number => {
     const priceLower = price.toLowerCase();
 
     // Custom parser for Indonesian 'juta' and 'ribu' which use comma as decimal
-    const sanatize = (keyword: string): number | null => {
+    const handleIndonesian = (keyword: string): number | null => {
         if (priceLower.includes(keyword)) {
             const numericPart = priceLower.split(keyword)[0];
             // In this context, comma is always a decimal. Remove thousands separators (dots) and replace comma.
@@ -78,10 +80,10 @@ export const normalizePrice = (price: string): number => {
         return null;
     };
 
-    const jutaResult = sanatize('juta');
+    const jutaResult = handleIndonesian('juta');
     if (jutaResult !== null) return jutaResult;
 
-    const ribuResult = sanatize('ribu');
+    const ribuResult = handleIndonesian('ribu');
     if (ribuResult !== null) return ribuResult;
 
     return parseNumberWithSeparators(price);
