@@ -216,7 +216,7 @@ export default function Home(): JSX.Element {
               role="progressbar"
               aria-valuenow={progress}
               aria-valuemin={0}
-              aria-valuemax={countryData.length}
+              aria-valuemax={+countryData.length}
             ></div>
           </div>
           <p>{progress} / {countryData.length} countries processed.</p>
