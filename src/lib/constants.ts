@@ -139,7 +139,7 @@ export const countryData: Country[] = [
   { countryCode: 'mv', countryName: 'Maldives', currency: 'MVR' },
   { countryCode: 'ml', countryName: 'Mali', currency: 'XOF' },
   { countryCode: 'mt', countryName: 'Malta', currency: 'EUR' },
-  { countryCode: 'mr', countryName: 'Mauritania', currency: 'MRU' },
+  { countryCode: 'mr', countryName: 'Mauritania', currency: 'MRU', pricingCurrency: 'USD'  },
   { countryCode: 'mu', countryName: 'Mauritius', currency: 'MUR' },
   { countryCode: 'mx', countryName: 'Mexico', currency: 'MXN' },
   { countryCode: 'fm', countryName: 'Micronesia, Federated States of', currency: 'USD' },
