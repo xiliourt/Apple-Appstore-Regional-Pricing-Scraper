@@ -13,7 +13,6 @@ import {
   GroupedProduct,
   SortConfig,
   ExchangeRates,
-  filterHighestPriceProducts,
   groupProducts,
   sortGroupedProducts
 } from '../lib/utils';
