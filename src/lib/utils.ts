@@ -47,7 +47,7 @@ export function groupProducts(allProducts: ScrapedProduct[]): Record<string, Gro
       return acc;
     }
     
-    effectiveCurrency = apple_store_currency_map[item.countryCode]
+    const effectiveCurrency = apple_store_currency_map[item.countryCode]
 
     const key = `${item.product}-${effectiveCurrency}-${normalizedCost}`;
     if (!acc[key]) {
