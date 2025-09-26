@@ -6,4 +6,4 @@
 - Bulgaria is x100, it's parsing the value wrong because they use ,00 instead of .00
 
 ## To Do
-- Update country listing to include the currency apple uses specifically, instead of using functions to detect currency
+- Add a slug to proxy scraper calls instead of using public proxies (vercel can then cache this if I set cache headers)
