@@ -84,7 +84,7 @@ export const countryData: Country[] = [
   { countryCode: 'cv', countryName: 'Cape Verde', currency: 'CVE' },
   { countryCode: 'ky', countryName: 'Cayman Islands', currency: 'KYD' },
   { countryCode: 'cl', countryName: 'Chile', currency: 'CLP' },
-  { countryCode: 'cn', countryName: 'China', currency: 'CNY' },
+  { countryCode: 'cn', countryName: 'China', currency: 'CNY', pricingCurrency: 'CNY ' },
   { countryCode: 'co', countryName: 'Colombia', currency: 'COP' },
   { countryCode: 'cr', countryName: 'Costa Rica', currency: 'CRC' },
   { countryCode: 'hr', countryName: 'Croatia', currency: 'EUR' },
