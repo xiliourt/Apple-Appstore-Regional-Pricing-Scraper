@@ -57,57 +57,43 @@ export const getProducts: GetProductsFn = async (countryCode, appId) => {
     const proxyUrl = `${proxy}${encodedTargetUrl}`;
     try {
       // Fetch the data through the current proxy with an increased timeout.
-      const response = await axios.get<string>(proxyUrl, { timeout: 15000 });
-      const html = response.data;
+      const response = await axios.get<string>(proxyUrl, { timeout: 5000 });
+      const html = response.data;
 
-      // Parse the HTML string into a DOM document.
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
+      // Parse the HTML string into a DOM document.
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
 
-      const products: Products = [];
+      const products: Products = []; // Assuming 'Products' is a type like { product: string, cost: string }[]
 
-      // Find the <dt> for "In-App Purchases".
-      const inAppPurchasesDt = Array.from(
-        doc.querySelectorAll('dt.information-list__item__term')
-      ).find(dt => dt.textContent?.trim() === 'In-App Purchases');
+      // [START] New logic to scrape 'text-pair' classes
 
-      if (inAppPurchasesDt) {
-        // The parent element should be a div that also contains the <dd>.
-        const parentElement = inAppPurchasesDt.parentElement;
-        if (parentElement) {
-          // Find the corresponding <dd> element.
-          const definitionElement = parentElement.querySelector(
-            'dd.information-list__item__definition'
-          );
+      // Find all elements that have the 'text-pair' class.
+      // This will match <div class="text-pair svelte-1a9curd"> and similar.
+      const textPairElements = doc.querySelectorAll('.text-pair');
 
-          if (definitionElement) {
-            // Find all list items representing in-app purchases.
-            const productItems = definitionElement.querySelectorAll(
-              'li.list-with-numbers__item'
-            );
+      // Iterate over each found 'text-pair' element
+      textPairElements.forEach(pairElement => {
+        // Find all <span> elements within this 'text-pair' element
+        const spanElements = pairElement.querySelectorAll('span');
 
-            productItems.forEach(item => {
-              const productElement = item.querySelector(
-                '.list-with-numbers__item__title span'
-              );
-              const costElement = item.querySelector(
-                '.list-with-numbers__item__price'
-              );
+        // Check if we found at least two <span> elements
+        if (spanElements.length >= 2) {
+          // The first span is the product
+          const productElement = spanElements[0];
+          // The second span is the cost
+          const costElement = spanElements[1];
 
-              if (productElement && costElement) {
-                const product = productElement.textContent?.trim() || '';
-                const cost = costElement.textContent?.trim() || '';
+          // Extract the text content and trim whitespace
+          const product = productElement.textContent?.trim() || '';
+          const cost = costElement.textContent?.trim() || '';
 
-                if (product && cost) {
-                  products.push({ product, cost });
-                }
-              }
-            });
-          }
-        }
-      }
-
-      // If we are here, the request was successful. Return the products found (or an empty array).
+          // If both product and cost are non-empty, add to the array
+          if (product && cost) {
+            products.push({ product, cost });
+          }
+        }
+      });
       return products;
     } catch (error) {
       if (axios.isAxiosError(error)) {
