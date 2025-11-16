@@ -74,7 +74,7 @@ export const getProducts: GetProductsFn = async (countryCode, appId) => {
           const productElement = spanElements[0];
           const costElement = spanElements[1];
           const product = productElement.textContent?.trim() || '';
-          const cost = costElement.textContent?.trim() || '';
+          var cost = costElement.textContent?.trim() || '';
 
           // Deal with , (damn it, Bulgaria) 
           const lastComma = cost.lastIndexOf(','); const lastPeriod = cost.lastIndexOf('.');
