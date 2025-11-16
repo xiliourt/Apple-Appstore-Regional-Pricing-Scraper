@@ -64,34 +64,25 @@ export const getProducts: GetProductsFn = async (countryCode, appId) => {
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
 
-      const products: Products = []; // Assuming 'Products' is a type like { product: string, cost: string }[]
+      const products: Products = []; 
 
-      // [START] New logic to scrape 'text-pair' classes
-
-      // Find all elements that have the 'text-pair' class.
-      // This will match <div class="text-pair svelte-1a9curd"> and similar.
       const textPairElements = doc.querySelectorAll('.text-pair');
 
-      // Iterate over each found 'text-pair' element
       textPairElements.forEach(pairElement => {
-        // Find all <span> elements within this 'text-pair' element
         const spanElements = pairElement.querySelectorAll('span');
-
-        // Check if we found at least two <span> elements
         if (spanElements.length >= 2) {
-          // The first span is the product
           const productElement = spanElements[0];
-          // The second span is the cost
           const costElement = spanElements[1];
-
-          // Extract the text content and trim whitespace
           const product = productElement.textContent?.trim() || '';
           const cost = costElement.textContent?.trim() || '';
 
-          // If both product and cost are non-empty, add to the array
-          if (product && cost) {
-            products.push({ product, cost });
-          }
+          // Deal with , (damn it, Bulgaria) 
+          const lastComma = cost.lastIndexOf(','); const lastPeriod = cost.lastIndexOf('.');
+          if (lastComma > lastPeriod) { cost = cost.replace(/\./g, '').replace(',', '.'); } // Comma is likely the decimal separator (e.g., "49,99")
+          else if (lastPeriod > lastComma) { cost = cost.replace(/,/g, ''); } // Period is likely the decimal separator (e.g., "1,234.56")
+
+          // Add to array
+          if (product && cost) { products.push({ product, cost }); }
         }
       });
       return products;
